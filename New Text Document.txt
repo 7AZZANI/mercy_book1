@@ -1,0 +1,64 @@
+@login_required(login_url='login')
+def rent_book_view(request, slug):
+    try:
+        b = Book.objects.get(slug=slug)
+        if b:
+            if b.book_amount > 0:
+                b.book_amount -= 1
+                b.save()
+                log_history = BookRentHistory(user=request.user, book=b)
+                log_history.save()
+                messages.success(
+                    request, f'You rent a book: {b.title}')
+            else:
+                messages.warning(
+                    request, f'You cant rent this book')
+                return redirect('bookDetail', slug=b.slug)
+    except Book.DoesNotExist:
+        raise Http404("Book is unavailable")
+    return redirect('UserProfile')
+
+    120 - 121 safha/ views.books
+
+
+
+
+
+    path('confirm-rent-a-book/<slug:slug>',
+         confirm_rent_view, name="confirm_rent_view"),
+
+         26 safha
+
+
+         class BookRentHistory(models.Model):
+    book = models.ForeignKey(
+        Book, on_delete=models.PROTECT, editable=False)
+    user = models.ForeignKey(
+        User, on_delete=models.PROTECT, editable=False, related_name='books')
+    rent_date = models.DateField(auto_now_add=True, editable=False)
+    back_date = models.DateField(
+        default=datetime.now()+timedelta(days=30))
+
+    @property
+    def how_many_days(self):
+        return str(self.back_date - datetime.now().date())[:2]
+
+69 safha
+
+
+    path('book/rent-book/<slug:slug>', rent_book_view, name='rent_book'),
+ 26 urls
+
+
+ @admin.register(BookRentHistory)
+class BookRentHistoryAdmin(admin.ModelAdmin):
+    list_display = ('book', 'user', 'rent_date')
+
+    def has_add_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+admin
